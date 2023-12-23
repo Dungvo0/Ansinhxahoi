@@ -1,32 +1,57 @@
-# Prerequisites
-*.d
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+contract SocialSecurityContract {
+    // Struct để lưu trữ thông tin cá nhân và an sinh xã hội
+    struct Citizen {
+        string name;
+        uint256 dob; // Ngày tháng năm sinh
+        uint256 socialSecurityBalance; // Số dư trong tài khoản an sinh xã hội
+        bool isRegistered; // Đã đăng ký hay chưa
+    }
 
-# Precompiled Headers
-*.gch
-*.pch
+    // Mapping giữa địa chỉ ví và thông tin công dân
+    mapping(address => Citizen) public citizens;
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+    // Sự kiện được kích hoạt khi một công dân mới đăng ký
+    event Registered(address indexed citizenAddress, string name, uint256 dob);
 
-# Fortran module files
-*.mod
-*.smod
+    // Hàm đăng ký công dân mới
+    function registerCitizen(string memory _name, uint256 _dob) external {
+        // Đảm bảo người dùng chưa đăng ký
+        require(!citizens[msg.sender].isRegistered, "Citizen already registered");
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+        // Tạo một công dân mới
+        Citizen storage newCitizen = citizens[msg.sender];
+        newCitizen.name = _name;
+        newCitizen.dob = _dob;
+        newCitizen.socialSecurityBalance = 0;
+        newCitizen.isRegistered = true;
 
-# Executables
-*.exe
-*.out
-*.app
+        // Gửi sự kiện đăng ký
+        emit Registered(msg.sender, _name, _dob);
+    }
+
+    // Hàm nạp tiền vào tài khoản an sinh xã hội
+    function depositToSocialSecurity() external payable {
+        // Đảm bảo người dùng đã đăng ký
+        require(citizens[msg.sender].isRegistered, "Citizen not registered");
+
+        // Nạp tiền vào tài khoản an sinh xã hội
+        citizens[msg.sender].socialSecurityBalance += msg.value;
+    }
+
+    // Hàm rút tiền từ tài khoản an sinh xã hội
+    function withdrawFromSocialSecurity(uint256 _amount) external {
+        // Đảm bảo người dùng đã đăng ký
+        require(citizens[msg.sender].isRegistered, "Citizen not registered");
+        // Đảm bảo số dư đủ
+        require(citizens[msg.sender].socialSecurityBalance >= _amount, "Insufficient balance");
+
+        // Rút tiền từ tài khoản an sinh xã hội
+        citizens[msg.sender].socialSecurityBalance -= _amount;
+
+        // Chuyển tiền về cho người dùng
+        payable(msg.sender).transfer(_amount);
+    }
+}
